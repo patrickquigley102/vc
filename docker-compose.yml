@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  seed-vc:
+    build: .
+    image: seed-vc:latest
+    container_name: seed-vc
+    ports:
+      - "7860:7860"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      # Mount for persistent model checkpoints
+      - ./checkpoints:/app/checkpoints
+      # Mount for examples (optional)
+      - ./examples:/app/examples
+    restart: unless-stopped
+    shm_size: '8gb'

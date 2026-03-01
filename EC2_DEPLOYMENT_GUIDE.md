@@ -304,6 +304,137 @@ The application includes example audio files in the `examples/` directory. You c
 
 ---
 
+## 5A. Command-Line Inference (Alternative to Web UI)
+
+If you prefer to run voice conversion via command line instead of the Gradio web interface, you have two options:
+
+### Option 1: Using the Helper Script (Recommended)
+
+The repository includes `docker-convert.sh` which simplifies running inference:
+
+```bash
+# Basic usage
+./docker-convert.sh -s source.mp3 -t reference.mp3
+
+# With custom parameters
+./docker-convert.sh \
+  -s ./audio/source.mp3 \
+  -t ./audio/reference.mp3 \
+  -o ./output \
+  -d 30 \
+  --intelligibility 0.75 \
+  --similarity 0.75 \
+  --top-p 0.9 \
+  --temperature 0.9
+```
+
+**Available Options:**
+- `-s, --source FILE`: Source audio file to convert (required)
+- `-t, --target FILE`: Reference audio file (required)
+- `-o, --output DIR`: Output directory (default: ./output)
+- `-d, --diffusion N`: Diffusion steps (default: 8)
+- `-l, --length-adjust N`: Length adjustment (default: 1.0)
+- `--intelligibility N`: Intelligibility CFG rate (default: 0.75)
+- `--similarity N`: Similarity CFG rate (default: 0.75)
+- `--convert-style BOOL`: Convert style/emotion/accent (default: false)
+- `--anonymization BOOL`: Anonymization only (default: false)
+- `--top-p N`: Top-p sampling (default: 0.9)
+- `--temperature N`: Temperature (default: 0.9)
+- `--repetition-penalty N`: Repetition penalty (default: 1.1)
+
+### Option 2: Direct Docker Command
+
+Run inference directly using the Docker container:
+
+```bash
+# Create directories for your audio files
+mkdir -p input output
+
+# Copy your files to the input directory
+cp your_source.mp3 input/
+cp your_reference.mp3 input/
+
+# Run inference
+docker run --rm \
+  --gpus all \
+  -v $(pwd)/input:/input:ro \
+  -v $(pwd)/output:/output \
+  seed-vc:latest \
+  python3 inference_v2.py \
+    --source /input/your_source.mp3 \
+    --target /input/your_reference.mp3 \
+    --output /output \
+    --diffusion-steps 8 \
+    --length-adjust 1.0 \
+    --intelligibility-cfg-rate 0.75 \
+    --similarity-cfg-rate 0.75 \
+    --convert-style false \
+    --anonymization-only false \
+    --top-p 0.9 \
+    --temperature 0.9 \
+    --repetition-penalty 1.1
+```
+
+### Option 3: Modify Dockerfile for CLI-Only Deployment
+
+If you only need command-line inference and want to skip the Gradio UI entirely, modify the Dockerfile:
+
+```dockerfile
+# Change the CMD line at the end of the Dockerfile from:
+CMD ["python3", "app.py", "--enable-v1", "--enable-v2"]
+
+# To:
+CMD ["tail", "-f", "/dev/null"]
+```
+
+Then rebuild and run:
+
+```bash
+docker compose down
+docker compose build
+docker compose up -d
+
+# Now run inference commands
+docker exec seed-vc python3 inference_v2.py \
+  --source /path/to/source.mp3 \
+  --target /path/to/reference.mp3 \
+  --output /output \
+  --diffusion-steps 8 \
+  --length-adjust 1.0 \
+  --intelligibility-cfg-rate 0.75 \
+  --similarity-cfg-rate 0.75 \
+  --convert-style false \
+  --anonymization-only false \
+  --top-p 0.9 \
+  --temperature 0.9 \
+  --repetition-penalty 1.1
+```
+
+### Using V1 Model (inference.py)
+
+For V1 model inference:
+
+```bash
+docker run --rm \
+  --gpus all \
+  -v $(pwd)/input:/input:ro \
+  -v $(pwd)/output:/output \
+  seed-vc:latest \
+  python3 inference.py \
+    --source /input/source.wav \
+    --target /input/reference.wav \
+    --output /output \
+    --diffusion-steps 25 \
+    --length-adjust 1.0 \
+    --inference-cfg-rate 0.7 \
+    --f0-condition False \
+    --auto-f0-adjust False \
+    --semi-tone-shift 0 \
+    --fp16 True
+```
+
+---
+
 ## 6. Troubleshooting
 
 ### Container Won't Start
